@@ -12,8 +12,16 @@ from utils import *
 from sklearn.metrics import balanced_accuracy_score
 
 
-
 def get_splits(splits):
+    """
+    Get the training, validation and test data loaders for a given number of splits.
+
+    Args:
+        splits (int): The number of splits to use.
+
+    Returns:
+        Tuple[DataLoader, DataLoader, DataLoader]: The training, validation and test data loaders.
+    """
     transform_train = T.Compose([T.Resize((config['image_size'], config['image_size'])),
                         T.ElasticTransform(),
                         T.RandomEqualize(),
@@ -23,6 +31,7 @@ def get_splits(splits):
                         T.Normalize(mean=[0.485, 0.456, 0.406],
                                     std=[0.229, 0.224, 0.225])
                         ])
+    
     transform_val = T.Compose([T.Resize((config['image_size'], config['image_size'])),
                            T.ToTensor(),
                            T.Normalize(mean=[0.485, 0.456, 0.406],
@@ -37,6 +46,20 @@ def get_splits(splits):
         yield x
 
 def train(model, loader, optimizer, criterion, epoch):
+    """
+    Train a given model for one epoch.
+
+    Args:
+        model (nn.Module): The model to train.
+        loader (DataLoader): The data loader to use for training.
+        optimizer (Optimizer): The optimizer to use for training.
+        criterion (nn.Module): The loss function to use for training.
+        epoch (int): The current epoch number.
+
+    Returns:
+        float: The average training loss for the epoch.
+    """
+
     loss = 0
     model.train()
 
@@ -48,7 +71,6 @@ def train(model, loader, optimizer, criterion, epoch):
         targets_one_hot = torch.zeros(targets.size(0), config['classes']).to(device)
         targets_one_hot[:, 0] = (targets == 0).float()
         targets_one_hot[:, 1] = (targets == 2).float()
-        print(targets_one_hot, outputs)
         train_loss = criterion(outputs, targets_one_hot)
         train_loss.backward()
         optimizer.step()
@@ -60,7 +82,19 @@ def train(model, loader, optimizer, criterion, epoch):
     # compute the epoch training loss
     return loss / len(loader)
 
-def validation(model, loader, criterion, epoch):
+def validation(model, loader, criterion):
+    """
+    Compute the validation loss, accuracy and balanced accuracy for a given model and data loader.
+
+    Args:
+        model (nn.Module): The model to evaluate.
+        loader (DataLoader): The data loader to use for evaluation.
+        criterion (nn.Module): The loss function to use for evaluation.
+
+    Returns:
+        Tuple[float, float, float]: The validation loss, accuracy and balanced accuracy.
+    """
+
     model.eval()
     loss = 0
     correct = 0
@@ -87,6 +121,15 @@ def validation(model, loader, criterion, epoch):
     return loss / len(loader), correct/total, balanced_acc/len(loader)
 
 def get_label_percentage(dataset):
+    """"
+    Compute the percentage of each label in a given dataset.
+
+    Args:
+        dataset (Dataset): The dataset to use.
+
+    Returns:
+        List[float]: The percentage of each label in the dataset.
+    """
     label_counts = {}
     for _, label, _ in dataset:
         if label not in label_counts:
@@ -97,34 +140,39 @@ def get_label_percentage(dataset):
     return label_percentage
 
 if __name__ == '__main__':
+    # Parse command line arguments and load the config file
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_name', type=str, default='run2')
     args = parser.parse_args()
     config = LoadConfig_clf(args.test_name)
+
+    # Set the device and get the root weights directory
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
-    
-    out_dir = config['output_dir']
     weights_dir = config['weights_dir']
 
     splits = 1
+
+    # for each k-fold split
     for i, (train_loader, val_loader, test_loader) in enumerate(get_splits(splits)):
-        # config['output_dir'] = out_dir + f'_{i+1}_{splits}/'
+        
+        # create the split weights directory
         config['weights_dir'] = weights_dir + f'_{i+1}_{splits}/'
-        # createDir(config['output_dir'])
         createDir(config['weights_dir'])
         
+        # create the wandb run
         with wandb.init(project=f'CLF_finetunned', config=config, name=args.test_name + f"_{i+1}_{splits}") as run:
+            # get the model, if a checkpoint is specified load the weights
             model = load_model(config['model_name'], classes=config["classes"]).to(device)
             if config["network"]["checkpoint"] != None: 
                 model.load_state_dict(torch.load(config["network"]["checkpoint"]))
                 print("Load model from checkpoint {}".format(config["network"]["checkpoint"]))
 
-            wandb.watch(model)
+            # get the loss function and optimizer
             class_weights = 1 / torch.Tensor(get_label_percentage(train_loader.dataset))
-            
             criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
             optimizer = get_optimer(config['optimizer_name'], model, lr = config['lr'])
+           
+            # train the model
             best_val_loss = float('inf')
             for epoch in range(config['epochs']):
                 print("Epoch {}/{}".format(epoch, config['epochs']))

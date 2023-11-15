@@ -10,34 +10,29 @@ import json
 from dataset import *
 from utils import *
 
-def get_splits(splits):
-    transform_train = T.Compose([T.Resize((config['image_size'], config['image_size'])),
-                        T.ElasticTransform(),
-                        T.RandomEqualize(),
-                        T.RandomHorizontalFlip(),
-                        T.RandomVerticalFlip(),
-                        T.ToTensor(),
-                        T.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])
-                        ])
-    transform_val = T.Compose([T.Resize((config['image_size'], config['image_size'])),
-                           T.ToTensor(),
-                           T.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])
-                           ])
-
-    train_dict_path = "/fhome/gia07/project/Train_test_splits/train_data.pkl"
-    test_dict_path = "/fhome/gia07/project/Train_test_splits/test_data.pkl"  
-    paths = [train_dict_path, test_dict_path]
-    transforms = [transform_train, transform_val]                     
-    for x in create_dataloader_predicted_CNN(paths, transforms, batch_size=config["datasets"]["train"]["batch_size"], run=args.test_name, shuffle=True, splits=splits, classes = config['classes']):
-        yield x
-
+from train_classifier import get_splits
 
 def test(model, loader):
+    """
+    Test a given model.
+
+    Args:
+        model (nn.Module): The model to test.
+        loader (DataLoader): The data loader to use for testing.
+
+    Returns:
+        dict: A dictionary containing the metrics for the test set.
+                TP: True positives  
+                FP: False positives
+                TN: True negatives
+                FN: False negatives
+                test_loss: The average test loss.
+    """
+
     criterion = nn.CrossEntropyLoss()
     model.eval()
     test_loss = 0
+    
     # Compute the precision and recall for each class
     True_positives = [0, 0, 0]
     False_positives = [0, 0, 0]
@@ -56,8 +51,6 @@ def test(model, loader):
 
             test_loss += criterion(outputs, targets_one_hot).item()
                                                                                                    
-            print(outputs.argmax(1), targets_one_hot.argmax(1))
-            exit(0)
             for i in range(2):
                 True_positives[i] += ((outputs.argmax(1) == i) * (targets_one_hot.argmax(1) == i)).sum().item()
                 False_positives[i] += ((outputs.argmax(1) == i) * (targets_one_hot.argmax(1) != i)).sum().item()
@@ -90,7 +83,9 @@ def test(model, loader):
 
     return dict_metrics
 
+
 if __name__ == '__main__':
+    # Parse command line arguments and load the config file
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_name', type=str, default='run1_test')
     args = parser.parse_args()
