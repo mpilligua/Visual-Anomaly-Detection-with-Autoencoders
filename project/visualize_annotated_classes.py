@@ -8,46 +8,45 @@ from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 
-from dataset import create_dataloader, create_test_dataloader, create_dataloader_predicted
-from utils import LoadConfig, load_model, get_optimer, createDir
+from dataset import create_dataloader_predicted
+from utils import LoadConfig, load_model, createDir, get_weights
 
+"""
+This script is used to visualize some images of the dataset of each class model
+before and after passing through the autoencoder.
+"""
 
 if __name__ == '__main__':
+    # load the inline arguments and the configuration file
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_name', type=str, default='run6')
     args = parser.parse_args()
     config = LoadConfig(args.test_name)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    model = load_model(config['model_name']).to(device)
-
-    path2load = None
+    # set the weights path and create the output directory
     weights_path = config["weights_dir"]
     out_dir = config["root_dir"] + "/visualization/"
     createDir(out_dir)
 
     batch_size = config["datasets"]["test"]["batch_size"]
 
-    for path in os.listdir(weights_path):
-        # print(path, path[-4:])
-        if path[-4:] == ".pth":
-            if path2load == None: 
-                path2load = path
-            elif int(path.split("epoch_")[1].split(".")[0]) > int(path2load.split("epoch_")[1].split(".")[0]):        
-                path2load = path
-    model.load_state_dict(torch.load(weights_path + path2load))  
+    # create the model and load the weights
+    model = load_model(config['model_name']).to(device)
+    path = get_weights(weights_path)
+    model.load_state_dict(torch.load(path))
 
     transform = T.Compose([T.Resize((256, 256)),
                         T.ToTensor()])
 
     path = "/fhome/gia07/project/Train_test_splits/test_data.pkl"
 
+    # create the data loader
     test_loader = create_dataloader_predicted(path, transform = None, batch_size = 1, shuffle=False)
     
-    # crete a subplot with 5 x 5 images for each class
-
     ImgxClass = {}
     PredxClass = {}    
+    # iterate over the data loader and save the images in a dictionary
     for i, (img, pred, label, img_path) in tqdm(enumerate(test_loader), total=len(test_loader)):
         img = img.to(device)
         pred = pred.to(device)
@@ -62,7 +61,8 @@ if __name__ == '__main__':
         ImgxClass[label.item()].append(img)
         PredxClass[label.item()].append(pred)
         
-    # print(ImgxClass[ImgxClass.keys()[0]][0].shape)
+
+    # create a 5x5 grid with the images of each class
     for key in ImgxClass:
         fig, ax = plt.subplots(5, 5, figsize=(10, 10))
         ax = ax.flatten()

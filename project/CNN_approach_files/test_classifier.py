@@ -90,23 +90,24 @@ if __name__ == '__main__':
     parser.add_argument('--test_name', type=str, default='run1_test')
     args = parser.parse_args()
     config = LoadConfig_clf(args.test_name)
+    
+    # set the device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = load_model(config['model_name'], classes=config["classes"]).to(device)
-
     weights_dir = config['weights_dir']
-    splits = 1
-    for i, (train_loader, val_loader, test_loader) in enumerate(get_splits(splits)):
-        # config['output_dir'] = out_dir + f'_{i+1}_{splits}/'
-        config['weights_dir'] = weights_dir + f'_{i+1}_{splits}/'
-        # createDir(config['output_dir'])
-        
 
+    splits = 1
+    # Iterate over the k-fold splits
+    for i, (train_loader, val_loader, test_loader) in enumerate(get_splits(splits)):
+        config['weights_dir'] = weights_dir + f'_{i+1}_{splits}/'
+        
+        # Load the model and the weights
+        model = load_model(config['model_name'], classes=config["classes"]).to(device)
         print("Load model from weights {}".format(config["weights_dir"]))
         path = get_weights(config["weights_dir"])
         model.load_state_dict(torch.load(path))
 
+        # Test the model
         metrics = test(model, train_loader)
-
         print(metrics)
 
         # Write a json file with the metrics

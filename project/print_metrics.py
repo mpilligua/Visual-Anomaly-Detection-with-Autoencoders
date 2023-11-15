@@ -3,10 +3,14 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from metrics import MSE_Red_channel
-
+"""
+This script contains the different functions of metrics.py
+modified to visualize the results
+"""
 def count_red_pixels_HSV(image_bgr):
     #convert to HSV
     image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+    
     # define range of red color in HSV
     lower_red1 = np.array([0,50,50])
     upper_red1 = np.array([10,255,255])

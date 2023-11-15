@@ -8,11 +8,18 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sn
+import pandas as pd
+
 def process_data(data, patients_id, labels_ids, lable2num2classes, lable2num3classes):
     """
     data: dictionary of each patient with the labels of each image patch
 
-    return: X, y
+    return: X, y, y3
+    X: array of the percentage of positive patches of each patient
+    y: array of the labels of the patients with positive and negative
+    y3: array of the labels of the patients with high, low and negative
     """
     new_data = {}
     for patient, labels in data.items():
@@ -47,61 +54,66 @@ if __name__ == '__main__':
     path_train_labels = "/fhome/gia07/project/Train_test_splits/train_data.pkl"
     path_test_labels = "/fhome/gia07/project/Train_test_splits/test_data.pkl"
 
+    # Pass the labels to numbers
     lable2num_2clases = {"NEGATIVA":0, "BAIXA":1, "ALTA":1}
     lable2num_3clases = {"NEGATIVA":0, "BAIXA":1, "ALTA":2}
 
+    # Open the patients predictions 
     with open(path_train_data, 'rb') as file:
         dict_train = pickle.load(file)
 
-    print(len(dict_train["prediction"].keys()))
+    # print(len(dict_train["prediction"].keys()))
     with open(path_test_data, 'rb') as file:
         dict_test = pickle.load(file)
     
-    print(len(dict_test["prediction"].keys()))
+    # print(len(dict_test["prediction"].keys()))
+
     # Use the model predictions
     train_data = dict_train["prediction"]
     test_data = dict_test["prediction"]
 
+    # Reshape the data into a vector for each patient
     for pacient in train_data.keys():
         train_data[pacient] = np.array(train_data[pacient]).reshape(-1)
-    
     for pacient in test_data.keys():
         test_data[pacient] = np.array(test_data[pacient]).reshape(-1)
 
+    # Open the labels of the patients
     with open(path_train_labels, 'rb') as file:
         patients_id_train, train_labels = pickle.load(file)
     with open(path_test_labels, 'rb') as file:
         patients_id_test, test_labels = pickle.load(file)
-
-        
+from sklearn.metrics import confusion_matrix
+    import seaborn as sn
+    import pandas as pd
+    # Process the data
     X_train, y_train, y_train_3 = process_data(train_data, patients_id_train, train_labels, 
                                     lable2num2classes=lable2num_2clases, lable2num3classes=lable2num_3clases)
     X_test, y_test, y_test_3 = process_data(test_data, patients_id_test, test_labels, 
                                     lable2num2classes=lable2num_2clases, lable2num3classes=lable2num_3clases)
 
-    print(len(X_train), len(X_test), len(y_train), len(y_test))
+
+    # print(len(X_train), len(X_test), len(y_train), len(y_test))
+
     # K-folds cross validation
     from sklearn.model_selection import StratifiedKFold, KFold
-    # kf = KFold(n_splits=8)
     kf = StratifiedKFold(n_splits=8)
     dict_splits_results_pos_neg = {}
     dict_splits_results_high_low = {}
 
     best_thresholds_neg_pos = []
     best_thresholds_high_low = []
+
+    # For each split, train the model and get the results on the validation set
     for i, (train_index, test_index) in enumerate(kf.split(X_train, y=y_train)):
-        # print("TRAIN:", train_index, "TEST:", test_index)
+        # Get the train and validation data of this split
         X_train2, X_test2 = X_train[train_index], X_train[test_index]
         y_train2, y_train2_3, y_test2, y_test2_3 = y_train[train_index], y_train_3[train_index], y_train[test_index], y_train_3[test_index]
 
         fpr, tpr, thresholds = metrics.roc_curve(y_train2, X_train2, pos_label=1)
-        # plt.plot(fpr, tpr)
-        # plt.xlabel("False positive rate")
-        # plt.ylabel("True positive rate")
-        # plt.savefig("roc_curve_pos_neg.png")
-        # plt.close()
 
-        # Get the treshold that has higher true positive rate and lower false positive rate
+        # Get the treshold that has higher true positive rate and lower false positive rate at the same time
+        # for the positive/negative cases
         best_treshold = 0
         best_distance = 100
         for i in range(len(fpr)):
@@ -110,11 +122,11 @@ if __name__ == '__main__':
                 best_distance = distance
                 best_treshold = thresholds[i]
         
+        # Save the best treshold of this split
         best_thresholds_neg_pos.append(best_treshold)
 
-
+        # Get the results on the validation set
         y_pred2 = np.where(X_test2 > best_treshold, 1, 0)
-
         dict_splits_results_pos_neg[f"split_{i}_val"] = classification_report(y_test2, y_pred2, target_names=["Negative", "Positive"], output_dict=True)
 
         # Split the positive cases into high and low
@@ -123,12 +135,9 @@ if __name__ == '__main__':
 
 
         fpr, tpr, thresholds = metrics.roc_curve(y_train_positve, X_train_positve, pos_label=1)
-        # plt.plot(fpr, tpr)
-        # plt.xlabel("False positive rate")
-        # plt.ylabel("True positive rate")
-        # plt.savefig("roc_curve_high_low.png")
 
-        # Get the treshold that has higher true positive rate and lower false positive rate
+        # Get the treshold that has higher true positive rate and lower false positive rate at the same time
+        # to classify the high and low cases
         best_treshold_high_low = 0
         best_distance = 100
         for i in range(len(fpr)):
@@ -137,15 +146,18 @@ if __name__ == '__main__':
                 best_distance = distance
                 best_treshold_high_low = thresholds[i]
 
+        # Save the best treshold of this split
         best_thresholds_high_low.append(best_treshold_high_low)
 
+        # Get the results on the validation set for the 3 classes classification
         y_pred2 = np.where(X_test2 > best_treshold_high_low, 2, y_pred2)
-
         dict_splits_results_high_low[f"split_{i}_val"] = classification_report(y_test2_3, y_pred2, target_names=["Negative", "Low", "High"], output_dict=True)
         
+    # We get the meadian treshold of all the splits, so if there are outliers, they affect less to the final treshold
     best_threshold_neg_pos = np.median(best_thresholds_neg_pos)
     best_threshold_high_low = np.median(best_thresholds_high_low)
 
+    # Plot the boxplot of the diferent tresholds in the different splits
     plt.figure(figsize=(6, 5))
     plt.boxplot((best_thresholds_neg_pos, best_thresholds_high_low), 
                 showmeans=True, 
@@ -155,6 +167,7 @@ if __name__ == '__main__':
     plt.savefig("boxplot_tresholds_patients.png")
     plt.close()
 
+    # RESULTS ON TWO CLASES CLASSIFICATION
     print("2 CLASES:")
     print("Results k fold val")
     precision_neg = []
@@ -172,6 +185,7 @@ if __name__ == '__main__':
         f1_pos.append(dict_splits_results_pos_neg[key]["Positive"]["f1-score"])
 
 
+    # Boxplot of the diferent metrics for positive/negative classification
     plt.figure(figsize=(10, 5))
     plt.boxplot((precision_neg, recall_neg, f1_neg, precision_pos, recall_pos, f1_pos), 
                 showmeans=True, 
@@ -198,6 +212,7 @@ if __name__ == '__main__':
     print("")
     print(f"Mean treshold: {np.mean(best_thresholds_neg_pos)} +- {np.std(best_thresholds_neg_pos)}")
 
+    # Plot the roc curve on the train data
     fpr, tpr, thresholds = metrics.roc_curve(y_train, X_train, pos_label=1)
     plt.plot(fpr, tpr, label="Positive/Negative")
     fpr, tpr, thresholds = metrics.roc_curve(y_train_3[y_train_3 != 0] - 1, X_train[y_train_3 != 0], pos_label=1)
@@ -212,15 +227,13 @@ if __name__ == '__main__':
     y_pred = np.where(X_train > best_threshold_neg_pos, 1, 0)
     print(classification_report(y_train, y_pred, target_names=["Negative", "Positive"]))
     print("")
-    # Predict the test data using both tresholds
+
+    # Predict the test data between positive and negative
     y_pred = np.where(X_test > best_treshold, 1, 0)
     print("Results test 2 classes")
     print(classification_report(y_test, y_pred, target_names=["Negative", "Positive"]))
 
-    from sklearn.metrics import confusion_matrix
-    import seaborn as sn
-    import pandas as pd
-
+    # Plot the confusion matrix of the test data between positive and negative
     cm = confusion_matrix(y_test, y_pred)
     df_cm = pd.DataFrame(cm, index=["Negative", "Positive"], columns=["Negative", "Positive"])
     plt.figure(figsize=(6, 5))
@@ -230,6 +243,7 @@ if __name__ == '__main__':
     plt.savefig("confusion_matrix_patients_2_clases.png")
     plt.close()
 
+    # RESULTS ON THREE CLASES CLASSIFICATION
     print("3 CLASES:")
     print("Results k fold val")
     precision_neg = []
@@ -254,6 +268,7 @@ if __name__ == '__main__':
         f1_low.append(dict_splits_results_high_low[key]["Low"]["f1-score"])
         f1_high.append(dict_splits_results_high_low[key]["High"]["f1-score"])
 
+    # Boxplot of the diferent metrics for high/low classification
     plt.figure(figsize=(10, 5))
     plt.boxplot((precision_high, recall_high, f1_high, precision_low, recall_low, f1_low), 
                 showmeans=True, 
@@ -309,11 +324,7 @@ if __name__ == '__main__':
     plt.savefig("histogram_low_high.png")   
     plt.close()
 
-    # Plot the confusion matrix
-    from sklearn.metrics import confusion_matrix
-    import seaborn as sn
-    import pandas as pd
-
+    # Plot the confusion matrix on the test data for the 3 classes classification
     cm = confusion_matrix(y_test_3, y_pred_3)
     df_cm = pd.DataFrame(cm, index=["Negative", "Low", "High"], columns=["Negative", "Low", "High"])
     plt.figure(figsize=(6, 5))
@@ -324,15 +335,10 @@ if __name__ == '__main__':
     plt.close()
 
 
-    # Histogram positive rate
+    # Histogram positive rate of all the patients
     plt.figure(figsize=(6, 5))
     plt.hist(X_train, bins=20)
     plt.xlabel("Percentage of positive patches")
     plt.ylabel("Number of patients")
     plt.savefig("histogram_positive_rate.png")
     plt.close()
-
-
-    
-
-

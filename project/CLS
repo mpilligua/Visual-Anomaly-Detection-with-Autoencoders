@@ -26,5 +26,5 @@ fi
 
 if [ $5 -eq 1 ]
 then
-    python /fhome/gia07/project/CLS_CNN/classifier_patients_treshold_CNN.py --test_name $1
+    python /fhome/gia07/Medical_Gia07/project/Classifier_patches_pacients/classifier_patients_treshold.py --test_name $1
 fi

@@ -8,6 +8,7 @@ from tqdm import tqdm
 def count_red_pixels_HSV(image_bgr):
     #convert to HSV
     image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+    
     # define range of red color in HSV
     lower_red1 = np.array([0,100,20])
     upper_red1 = np.array([8,255,255])

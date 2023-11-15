@@ -17,7 +17,7 @@ def train_model(train_loader_annotated,  tres=155):
     from sklearn.model_selection import GridSearchCV 
     
     # defining parameter range 
-    # param_grid = {'max_depth': [1], 
+    # param_grid = {'max_depth': [1, 2, 3, 4], 
     #             'class_weight': ['balanced', None]}  
     
     # grid = GridSearchCV(tree.DecisionTreeClassifier(random_state=42), param_grid, refit = True, verbose = 0, scoring='f1_macro') 

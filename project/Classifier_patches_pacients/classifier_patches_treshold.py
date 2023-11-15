@@ -10,21 +10,23 @@ from sklearn.metrics import classification_report
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import pandas as pd
 
 from metrics import MSE_Red_channel as vectordifference
 from metrics import MSE_Red_channel_cropped as vectordifference_Cropped
 from dataset import DatasetPred, create_dataloader_predicted
 
-def classify_all_patches_patients_and_save(clf, dataloader, treshold_pos_neg, tresh=155):
-    # list_names = []
-    # data = (dataloader.dataset)
-    # for i in tqdm(range(len(data))):
-    #     list_names.append(data[i][2])
-    
+def classify_all_patches_patients_and_save(dataloader, treshold_pos_neg, tresh=155):
+    """
+    Classify all the patches of each patient and save the results in a dictionary
+
+    """
     X, list_names = vectordifference_Cropped(dataloader, treshold=tresh)
     y_pred = np.where(X > treshold_pos_neg, 1, 0)
         
-    dict_patient_patches = {"truth": {}, "prediction": {}}
+    dict_patient_patches = {"prediction": {}}
     for i, element in enumerate(list_names):
         patient = element.split("/")[0].split("_")[0]
         # print(patient)
@@ -39,17 +41,26 @@ def classify_all_patches_patients_and_save(clf, dataloader, treshold_pos_neg, tr
 
 
 if __name__ == '__main__':
-    name_model = "tree_positive_other"
+    path_train_test_splits = "/fhome/gia07/project/Train_test_splits"
     run = "run5"
-    train_loader_annotated = create_dataloader_predicted("/fhome/gia07/project/Train_test_splits/train_data.pkl", None, 1, shuffle=True, run=run)
-    test_loader_annotated = create_dataloader_predicted("/fhome/gia07/project/Train_test_splits/test_data.pkl", None, 1, shuffle=True, run=run)
+    path_output_dicts = f"/fhome/gia07/project/runs/{run}/Ground_truth_patient_classification"
+
+    # Get a loader that returns the predicted patches of the autoencoder and the original patches
+    # for the annotated data
+    train_loader_annotated = create_dataloader_predicted(f"{path_train_test_splits}/train_data.pkl", None, 1, shuffle=True, run=run)
+    test_loader_annotated = create_dataloader_predicted(f"{path_train_test_splits}/test_data.pkl", None, 1, shuffle=True, run=run)
     
+    # Get the diferences using MSE of the "redness" 
+    # between the original patches and the predicted patches,
+    # and the labels of the patches
     X_train, y_train3 = vectordifference(train_loader_annotated, treshold=156)
-    X_train, y_train = X_train[y_train3 != 1], y_train3[y_train3 != 1]
+    X_train, y_train = X_train[y_train3 != 1], y_train3[y_train3 != 1] # Remove the patches of the class uncertain
+
     X_test, y_test3 = vectordifference(test_loader_annotated, treshold=156)
-    X_test, y_test = X_test[y_test3 != 1], y_test3[y_test3 != 1]
+    X_test, y_test = X_test[y_test3 != 1], y_test3[y_test3 != 1] # Remove the patches of the class uncertain
 
     # np.where(condition, x, y) -> if condition is true, return x, else return y
+    # In this case, transform the label 2 to 1.
     y_train = np.where(y_train <= 1, 0, 1)
     y_test = np.where(y_test <= 1, 0, 1)
 
@@ -60,20 +71,16 @@ if __name__ == '__main__':
     dict_splits_results = {}
 
     best_thresholds = []
+    # For each split, train the model and get the results on the validation set
     for i, (train_index, test_index) in enumerate(kf.split(X_train, y=y_train)):
-        # print("TRAIN:", train_index, "TEST:", test_index)
+        # Get the train and validation data of this split
         X_train2, X_test2 = X_train[train_index], X_train[test_index]
         y_train2, y_test2 = y_train[train_index], y_train[test_index]
 
 
         fpr, tpr, thresholds = metrics.roc_curve(y_train2, X_train2, pos_label=1)
-        # plt.plot(fpr, tpr)
-        # plt.xlabel("False positive rate")
-        # plt.ylabel("True positive rate")
-        # plt.savefig("roc_curve_pos_neg_patches.png")
-        # plt.close()
 
-        # Get the treshold that has higher true positive rate and lower false positive rate
+        # Get the treshold that has higher true positive rate and lower false positive rate at the same time
         best_treshold = 0
         best_distance = 100
         for i in range(len(fpr)):
@@ -81,11 +88,12 @@ if __name__ == '__main__':
             if distance < best_distance:
                 best_distance = distance
                 best_treshold = thresholds[i]
-            
+
+        # Save the best treshold of this split
         best_thresholds.append(best_treshold)
 
+        # Get the results on the validation set
         y_pred2 = np.where(X_test2 > best_treshold, 1, 0)
-
         dict_splits_results[f"split_{i}_val"] = classification_report(y_test2, y_pred2, target_names=["Negative", "Positive"], output_dict=True)
 
     # Make the mean of the results on the splits
@@ -104,6 +112,7 @@ if __name__ == '__main__':
         f1_neg.append(dict_splits_results[key]["Negative"]["f1-score"])
         f1_pos.append(dict_splits_results[key]["Positive"]["f1-score"])
 
+    # Plot the boxplot of the diferent tresholds in the different splits
     plt.figure(figsize=(4, 5))
     plt.boxplot(best_thresholds, 
                 showmeans=True, 
@@ -128,11 +137,13 @@ if __name__ == '__main__':
     print("")
     print(f"Mean treshold: {np.mean(best_thresholds)} +- {np.std(best_thresholds)}")
     
+    # We get the meadian treshold of all the splits, so if there are outliers, they affect less to the final treshold
     best_treshold = np.median(best_thresholds)
     print("")
     print(f"Best treshold: {best_treshold}")
     print("")
 
+    # Boxplot of the diferent metrics during the k-folds cross validation
     plt.figure(figsize=(10, 5))
     plt.boxplot((precision_neg, recall_neg, f1_neg, precision_pos, recall_pos, f1_pos), 
                 showmeans=True, 
@@ -154,11 +165,8 @@ if __name__ == '__main__':
     print("Results test data")
     print(classification_report(y_test, y_pred, target_names=["Negative", "Positive"]))
 
-    # Confusion matrix
-    from sklearn.metrics import confusion_matrix
-    import seaborn as sns
-    import pandas as pd
 
+    # Confusion matrix on the test data
     cm = confusion_matrix(y_test, y_pred)
     df_cm = pd.DataFrame(cm, index=["Negative", "Positive"], columns=["Negative", "Positive"])
     plt.figure(figsize=(6, 5))
@@ -168,6 +176,7 @@ if __name__ == '__main__':
     plt.savefig("confusion_matrix_patches.png")
     plt.close()
 
+    # ROC curve on the training data
     fpr, tpr, thresholds = metrics.roc_curve(y_train2, X_train2, pos_label=1)
     plt.plot(fpr, tpr)
     plt.xlabel("False positive rate")
@@ -175,31 +184,26 @@ if __name__ == '__main__':
     plt.savefig("roc_curve_patches_train.png")
     plt.close()
 
-    plt.figure(figsize=(6, 5))
-    plt.hist(X_train[y_train == 0], bins=100, label="Negative", alpha=0.5)
-    plt.hist(X_train[y_train == 1], bins=100, label="Positive", alpha=0.5)
-    plt.xlim(0, 20)
-    plt.xlabel("Percentage of positive patches")
-    plt.ylabel("Number of patients")
-    plt.legend()
-    plt.savefig("histogram_pos_neg_patches.png")   
-    plt.close()
-
+    # Run the classifier on a 1000 cropped patches of each patient and save the results
+    # 
     best_tres = 156
-    train_loader_cropped = create_dataloader_predicted("/fhome/gia07/project/Train_test_splits/train_data.pkl", None, 1, run=run, annotated=False, shuffle=True)
-    test_loader_cropped = create_dataloader_predicted("/fhome/gia07/project/Train_test_splits/test_data.pkl", None, 1, run=run, annotated=False, shuffle=True)
+    train_loader_cropped = create_dataloader_predicted(f"{path_train_test_splits}/train_data.pkl", None, 1, run=run, annotated=False, shuffle=True)
+    test_loader_cropped = create_dataloader_predicted(f"{path_train_test_splits}/test_data.pkl", None, 1, run=run, annotated=False, shuffle=True)
     
-    clf = load(f'/fhome/gia07/project/runs/{run}/Classifier_patches/{name_model}.joblib')
-    # dict_train = classify_all_patches_patients_and_save(clf, train_loader_cropped, treshold_pos_neg=best_treshold, tresh=best_tres)
+    # Get the diferences using MSE of the "redness" 
+    # between the original patches and the predicted patches,
+    # and classify the patches using the best treshold
+    # It returns a dictionary with the results of the classification of each patient
+    dict_train = classify_all_patches_patients_and_save(train_loader_cropped, treshold_pos_neg=best_treshold, tresh=best_tres)
 
-    # if not os.path.exists(f"/fhome/gia07/project/runs/{run}/Ground_truth_patient_classification"):
-    #     os.makedirs(f"/fhome/gia07/project/runs/{run}/Ground_truth_patient_classification",exist_ok=True)
+    if not os.path.exists(path_output_dicts):
+        os.makedirs(path_output_dicts,exist_ok=True)
         
-    # with open(f"/fhome/gia07/project/runs/{run}/Ground_truth_patient_classification/dict_train_treshold.pkl", 'wb') as file:
-    #     pickle.dump(dict_train, file)
+    with open(f"{path_output_dicts}/dict_train_treshold.pkl", 'wb') as file:
+       pickle.dump(dict_train, file)
 
-    dict_test = classify_all_patches_patients_and_save(clf, test_loader_cropped, treshold_pos_neg=best_treshold, tresh=best_tres)
+    dict_test = classify_all_patches_patients_and_save(test_loader_cropped, treshold_pos_neg=best_treshold, tresh=best_tres)
 
-    # with open(f"/fhome/gia07/project/runs/{run}/Ground_truth_patient_classification/dict_test_treshold.pkl", 'wb') as file:
-    #     pickle.dump(dict_test, file)
+    with open(f"{path_output_dicts}/dict_test_treshold.pkl", 'wb') as file:
+       pickle.dump(dict_test, file)
 

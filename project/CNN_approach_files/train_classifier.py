@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
     splits = 1
 
-    # for each k-fold split
+    # Iterate over the k-fold splits
     for i, (train_loader, val_loader, test_loader) in enumerate(get_splits(splits)):
         
         # create the split weights directory

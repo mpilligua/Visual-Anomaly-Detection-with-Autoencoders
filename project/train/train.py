@@ -12,6 +12,9 @@ from utils import LoadConfig, load_model, get_optimer
 
 
 def get_loader(train = True):
+    """
+    Create dataloader for training and validation with augmentation
+    """
     transform = T.Compose([T.Resize((config['image_size'], config['image_size'])),
                            T.RandomHorizontalFlip(),
                            T.RandomVerticalFlip(),
@@ -52,7 +55,7 @@ def validation(model, loader, criterion, epoch):
             val_loss = criterion(outputs, img)
             loss += val_loss.item()
     
-        # save the last batch input and output of every epoch
+        # save the last batch output of every epoch
         for j in range(outputs.size(0)):
             save_image(outputs[j], f'{config["output_dir"]}/{epoch}_{j}.png')
                     
@@ -62,30 +65,41 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_name', type=str, default='run3')
     args = parser.parse_args()
+
+    # Load config file
     config = LoadConfig(args.test_name)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
+    # Initialize wandb
     with wandb.init(project='test', config=config, name=args.test_name) as run:
 
+        # Get dataloader
         train_loader, val_loader = get_loader(train = True)
+        # Load model specified in config file
         model = load_model(config['model_name']).to(device)
 
+        # Load checkpoint if specified
         if config["network"]["checkpoint"] != None: 
             model.load_state_dict(torch.load(config["network"]["checkpoint"]))
             print("Load model from checkpoint {}".format(config["network"]["checkpoint"]))
 
         wandb.watch(model)
+        # Get optimizer and loss function
         optimizer = get_optimer(config['optimizer_name'], model, lr = config['lr'])
         criterion = nn.MSELoss()
+
+        # Start training
         best_val_loss = float('inf')
         for epoch in range(config['epochs']):
             print("Epoch {}/{}".format(epoch, config['epochs']))
+            # Train and validate for one epoch
             print("Training")
             train_loss = train(model, train_loader, optimizer, criterion, epoch=epoch)
             print("Validation")
             val_loss = validation(model, val_loader, criterion, epoch = epoch)
             print("epoch : {}| Train loss = {:.6f}| Val loss = {:.6f}".format(epoch, train_loss, val_loss))
             wandb.log({"Epoch Train Loss": train_loss, "Epoch Validation Loss": val_loss, "epoch":epoch+1}, step=(epoch+1)*len(train_loader)*config["datasets"]["train"]['batch_size'])
+            # Save model if validation loss is the best so far
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 print("New best validation loss")

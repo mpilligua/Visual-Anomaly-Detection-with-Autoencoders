@@ -1,11 +1,23 @@
 import yaml
 import os
 from models.autencoder import *
-from models.classifier import *
+from CNN_approach_files.models.classifier import *
 import torch
 
 
 def load_model(model_name, classes=None):
+    """
+    Load the model with the given name.
+
+    Args:
+        model_name (str): The name of the model to load.
+        classes (int, optional): The number of classes in the dataset.
+                                 Used only for the EFFICIENTNET models. Defaults to None.
+
+    Returns:
+        nn.Module: The model.
+    """
+
     if model_name == 'CNN_AUTOENCODER':
         return ConvAE()
     elif model_name == 'UNET':
@@ -34,6 +46,18 @@ def load_model(model_name, classes=None):
         raise Exception("Model not found")
 
 def get_optimer(optimizer_name, model, lr):
+    """
+    Get the optimizer with the given name.
+
+    Args:
+        optimizer_name (str): The name of the optimizer to load.
+        model (nn.Module): The model to optimize.
+        lr (float): The learning rate.
+
+    Returns:
+        torch.optim: The optimizer.
+    """
+
     if optimizer_name == 'ADAM':
         return torch.optim.Adam(model.parameters(), lr=lr)
     elif optimizer_name == 'SGD':
@@ -44,10 +68,27 @@ def get_optimer(optimizer_name, model, lr):
         raise Exception("Optimizer not found")
 
 def createDir(dir_name):
+    """
+    Create a directory if it does not exist.
+
+    Args:
+        dir_name (str): The name of the directory to create.
+    """
+
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
 def LoadConfig(test_name):
+    """
+    Load the configuration file with the given name.
+
+    Args:
+        test_name (str): The name of the configuration file.
+
+    Returns:
+        dict: The configuration file.
+    """
+
     with open("/fhome/gia07/project/setups/" + test_name + ".yaml") as f:
         opt = yaml.load(f, Loader=yaml.FullLoader)
     opt[test_name] = test_name
@@ -64,6 +105,16 @@ def LoadConfig(test_name):
     return opt
 
 def LoadConfig_clf(test_name):
+    """
+    Load the configuration file with the given name.
+
+    Args:
+        test_name (str): The name of the configuration file.
+
+    Returns:
+        dict: The configuration file.
+    """
+
     with open("/fhome/gia07/project/setups_clf/" + test_name + ".yaml") as f:
         opt = yaml.load(f, Loader=yaml.FullLoader)
     opt[test_name] = test_name
@@ -80,6 +131,16 @@ def LoadConfig_clf(test_name):
     return opt
 
 def get_weights(weights_path):
+    """
+    Get the weights with the highest epoch number.
+
+    Args:
+        weights_path (str): The path to the weights.
+
+    Returns:
+        str: The path to the weights with the highest epoch number.
+    """
+    
     path2load = None
     for path in os.listdir(weights_path):
         if path[-4:] == ".pth":
