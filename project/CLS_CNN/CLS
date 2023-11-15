@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH -A atfg # Number of cores
+#SBATCH -n 2 # Number of cores
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -D /fhome/gia07/project/CLS_CNN/MSG_ERRORS/ # working directory
+#SBATCH -p tfg # Partition to submit to
+#SBATCH --mem 2048 # 2GB solicitados.
+#SBATCH -o %x_%j.out # File to which STDOUT will be written
+#SBATCH -e %x_%j.err # File to which STDERR will be written
+#SBATCH --gres gpu:1 # Para pedir gráficas
+
+
+if [ $2 -eq 1 ]
+then
+    python /fhome/gia07/project/CLS_CNN/train_classifier.py --test_name $1
+fi
+if [ $3 -eq 1 ]
+then
+    python /fhome/gia07/project/CLS_CNN/test_classifier.py --test_name $1
+fi
+
+if [ $4 -eq 1 ]
+then
+    python /fhome/gia07/project/CLS_CNN/classifier_patches_CNN.py --test_name $1
+fi
+
+if [ $5 -eq 1 ]
+then
+    python /fhome/gia07/project/CLS_CNN/classifier_patients_treshold_CNN.py --test_name $1
+fi

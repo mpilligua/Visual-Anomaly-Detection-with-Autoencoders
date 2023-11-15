@@ -1,0 +1,25 @@
+## Configuration options to run Autoencoder.py
+epochs: 20
+
+image_size: 256
+
+model_name: "RESNET50"
+optimizer_name: "ADAM"
+lr: 0.001
+schedule_name: "ReduceLROnPlateau"
+
+network: 
+  checkpoint: "/fhome/gia07/project/runs_clf/run1/weights/CNN_autoencoder_epoch_11.pth"
+
+datasets: 
+  train_split: 0.7
+  test_split: 0.2
+  val_split: 0.10
+
+  train: 
+    batch_size: 30
+
+  test:
+    batch_size: 30
+
+

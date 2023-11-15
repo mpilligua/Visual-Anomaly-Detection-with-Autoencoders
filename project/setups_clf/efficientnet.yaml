@@ -1,0 +1,27 @@
+## Configuration options to run Autoencoder.py
+epochs: 20
+transform: "Base ones"
+
+image_size: 256
+
+model_name: "EFFICIENTNET"
+optimizer_name: "ADAM"
+lr: 0.001
+schedule_name: "ReduceLROnPlateau"
+
+network: 
+  checkpoint: ~
+
+datasets: 
+  train_split: 0.7
+  test_split: 0.2
+  val_split: 0.10
+
+  train: 
+    batch_size: 1
+
+  test:
+    batch_size: 1
+
+
+classes: 3

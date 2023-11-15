@@ -1,0 +1,33 @@
+## Configuration options to run Autoencoder.py
+epochs: 15
+
+image_size: 256
+input_dir: "/fhome/mapsiv/QuironHelico/CroppedPatches"
+output_dir: "/fhome/gia07/project/ouput_autoncoder"
+
+model_name: "UNET_NOT_RESIDUALS"
+optimizer_name: "ADAM"
+lr: 0.00001
+schedule_name: "ReduceLROnPlateau"
+
+network: 
+  checkpoint: "/fhome/gia07/project/runs/run5/weights/CNN_autoencoder_epoch_14.pth"
+
+datasets: 
+  neg_samples_dir: '/fhome/gia07/project/Train_test_splits/neg_samples.pkl'
+  spit: False
+
+  train_split: 0.72
+  test_split: 0.2
+  val_split: 0.08
+
+  train: 
+    batch_size: 30
+
+  test:
+    path_folder: "/fhome/mapsiv/QuironHelico/CroppedPatches"
+    path_pickle: "/fhome/gia07/project/Train_test_splits/test_data.pkl"
+
+    batch_size: 5
+
+
