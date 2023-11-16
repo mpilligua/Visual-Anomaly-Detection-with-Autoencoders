@@ -7,7 +7,8 @@
 <details close>
 <summary><b>Performance Autoencoder approach:</b></summary>
 
-![results1](/figure/seven_results.png)
+![Performance](performance/Autoencoder-2classes.png)
+
 
 
 </details>
