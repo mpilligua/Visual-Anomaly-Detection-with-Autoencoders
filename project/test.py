@@ -12,7 +12,7 @@ from utils import LoadConfig, load_model, get_weights
 
 
 """
-This script is used to pass the test images of the cropped patches through the autoencoder
+This script is used to pass the test images of the cropped patches of negative patients through the autoencoder
 and save the output images.
 """
 

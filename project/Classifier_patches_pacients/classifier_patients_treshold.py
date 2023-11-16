@@ -83,7 +83,7 @@ if __name__ == '__main__':
         patients_id_train, train_labels = pickle.load(file)
     with open(path_test_labels, 'rb') as file:
         patients_id_test, test_labels = pickle.load(file)
-from sklearn.metrics import confusion_matrix
+    from sklearn.metrics import confusion_matrix
     import seaborn as sn
     import pandas as pd
     # Process the data

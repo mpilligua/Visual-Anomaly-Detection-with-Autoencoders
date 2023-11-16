@@ -11,7 +11,7 @@ from dataset import create_CroppedPatches_loader, DatasetCroppedPatchesTest
 from utils import LoadConfig, load_model, createDir, get_weights
 
 """
-This script is used to pass the all images of the cropped patches through the autoencoder
+This script is used to pass a 1000 random cropped patches of each patient through the autoencoder
 and save the output images.
 """
 
