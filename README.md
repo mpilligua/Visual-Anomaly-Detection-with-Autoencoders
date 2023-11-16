@@ -10,7 +10,7 @@
   - **setups_clf**: Setups used to fine-tune the classifiers
   - **autoncoder_vs_CNN.ipynb**: Comparison of parameters and inference time of both models.
   - **dataset.py**: different pytorch datasets used
-  - **metrics.py**: Metrics used as reconstruction error in the autoencoder
+  - **metrics.py**: Metrics used as reconstruction error in the autoencoder approach
   - **partition_dataset.ipynb**: Notebook to split the patients in train and test
   - **preprocessing.ipynb**: Notebook to do the image preprocessing 
   - **utils.py**: Different helper functions used
