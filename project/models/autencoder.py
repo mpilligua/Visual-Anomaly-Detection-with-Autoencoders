@@ -179,7 +179,7 @@ class UNet_NotRes(nn.Module):
         out = self.outconv(xd22)
 
         if return_embedding:
-            return out, xd32
+            return out, xe32
         else:
             return out
 
@@ -191,7 +191,7 @@ class Unet_preconstructed(nn.Module):
         in_channels=3, out_channels=1, init_features=32, pretrained=False)
     
     def forward(self, x):
-        return model(x)
+        return self.model(x)
 
 
 class MLP_emb(nn.Module):

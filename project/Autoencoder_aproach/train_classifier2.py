@@ -10,7 +10,11 @@ from dataset import *
 from utils import *
 from models.autencoder import unet_cnn
 
-
+"""
+This script is used to train a classifier on the anotated patches.
+We tried to classify using the output of the encoder in the autoencoder trained on negative patients.
+It did not work well.
+"""
 
 def get_loader(train = True):
     transform = T.Compose([T.Resize((config['image_size'], config['image_size'])),
@@ -67,6 +71,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_name', type=str, default='run3')
     args = parser.parse_args()
+    # Load config file from the test name passed as argument
     config = LoadConfig(args.test_name)
 
     config["weights_dir"] = config["weights_dir"] + "/UNET_CNN/"
@@ -78,10 +83,13 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     with wandb.init(project='UNET_CNN', config=config, name=args.test_name) as run:
-
+        # Get the loaders
         train_loader, val_loader = get_loader(train = True)
+
+        # Load the model stated in the config file
         unet = load_model(config['model_name']).to(device)
 
+        # Load the pretrained weights of the model
         if config["network"]["checkpoint"] != None: 
             unet.load_state_dict(torch.load(config["network"]["checkpoint"]))
             print("Load model from checkpoint {}".format(config["network"]["checkpoint"]))
@@ -89,10 +97,12 @@ if __name__ == '__main__':
             path = get_weights(config["weights_dir"])
             unet.load_state_dict(torch.load(path))
 
+        # Add the classifier on top of the encoder of the autoencoder
         model = unet_cnn(unet).to(device)
         # print(model.state_dict())
 
         wandb.watch(model)
+        # Get the optimizer specified on the config file and the loss function
         optimizer = get_optimer(config['optimizer_name'], model, lr = config['lr'])
         criterion = nn.CrossEntropyLoss()
         best_val_loss = float('inf')

@@ -42,10 +42,6 @@ def count_red_pixels(image_bgr):
 
     return [np.sum(red_mask), np.sum(blue_mask), np.sum(green_mask)]
 
-#Perform MSE of 2 images
-def MSE(original, autoencoder):
-    return np.mean((original - autoencoder)**2)
-
 #Calculating histogram of the image
 def calculate_red_histogram(image_path):
     
