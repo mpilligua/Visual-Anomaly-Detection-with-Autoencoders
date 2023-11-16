@@ -15,7 +15,7 @@
   - **preprocessing.ipynb**: Notebook to do the image preprocessing 
   - **utils.py**: Different helper functions used
   - **visualize_annotated_classes.py**: Visualization of the autoencoder generated images per class
-### Results
+## Results
 - Results on patches
 - Results on patients
 
