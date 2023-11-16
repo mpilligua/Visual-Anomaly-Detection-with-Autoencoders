@@ -123,7 +123,7 @@ class DatasetAnnotatedPatchesTest(Dataset):
 class DatasetCroppedPatches_get1000_imgs(Dataset):
     def __init__(self, transform=None):
         """
-        Get 1000 images of each patient
+        Get 1000 random images of each patient
         
         Args:
             transform (callable, optional): Optional transform to be applied

@@ -12,3 +12,4 @@ CLS_CNN/__pycache__
 project.code-workspace
 PythonENV_Linux.txt
 test_classifier
+test_1_image.py
