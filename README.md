@@ -7,6 +7,7 @@
 <details close>
 <summary><b>Performance Autoencoder approach:</b></summary>
 
+### Patch classification 
 ![Performance](performance/Autoencoder-patches.png)
 
 ### Patient classification
