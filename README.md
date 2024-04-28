@@ -1,49 +1,16 @@
-# Medical_Image
-## Structure
-- **performance**: Images with the results of the different approaches
-- **project**: The code of the project
-  - **Autoencoder_aproach**: Files used to train and test the different autoencoders. Also, to generate images with the autoencoder
-  - **CNN_approach_files**: Files used on the fine-tuning of CNNs approach to classify patients
-  - **Classifier_patches_pacients**: Folder with the scripts to classify patches in the autoencoder approach and patients in both approaches
-  - **models**: Folder with a script with different autoencoders
-  - **setups**: Setups used to train the autoencoders
-  - **setups_clf**: Setups used to fine-tune the classifiers
-  - **autoncoder_vs_CNN.ipynb**: Comparison of parameters and inference time of both models.
-  - **dataset.py**: different pytorch datasets used
-  - **metrics.py**: Metrics used as reconstruction error in the autoencoder approach
-  - **partition_dataset.ipynb**: Notebook to split the patients in train and test
-  - **preprocessing.ipynb**: Notebook to do the image preprocessing 
-  - **utils.py**: Different helper functions used
-  - **visualize_annotated_classes.py**: Visualization of the autoencoder generated images per class
-    
-## Results
-- Results on patches
-- Results on patients
+# Visual Anomaly Detection with Autoencoders
 
-<details close>
-<summary><b>Performance Autoencoder approach:</b></summary>
+[![Presentation](https://img.shields.io/badge/Presentation-Slides-blue)](https://www.canva.com/design/DAFzT9Mw-dk/1hTZf2D5NbSwaLdFb-X5_g/edit?utm_content=DAFzT9Mw-dk&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
-### Patch classification 
-![Performance](performance/Autoencoder-patches.png)
+This repository hosts an implementation of a visual anomaly detection system using autoencoders, specifically tailored for detecting the presence of Helicobacter pylori (H. pylori) in histological images with immunohistochemical staining. H. pylori is a bacterium classified as a class 1 carcinogen to humans since 1994, making its detection crucial for early diagnosis and treatment.
 
-### Patient classification
-![Performance](performance/Autoencoder-3classes.png)
-![Performance](performance/Autoencoder-2classes.png)
+## Motivation 
+Traditional methods for detecting H. pylori involve labor-intensive manual inspection of digitized histological images by expert pathologists. This process is time-consuming and subjective, leading to potential errors. Our motivation is to develop an automated system that can accurately and efficiently detect H. pylori in histological images, thereby aiding pathologists in their diagnostic workflow.
 
+## Methodology
+We propose the use of autoencoders, a type of neural network architecture, to learn latent patterns of healthy tissue and identify anomalies indicative of H. pylori infection. Unlike traditional classification approaches, autoencoders can learn patterns in a self-supervised manner, eliminating the need for extensive image annotations. 
+Once the intrinsic representation of healthy tissue is learned we can use this model to try to reconstruct unlabelled images and based on the reconstruction error classify this patch as infected or healthy. 
 
+## Data 
+We trained using a dataset of 
 
-</details>
-
-<details close>
-<summary><b>Performance CNN approach:</b></summary>
-
-### Patch classification 
-![Performance](performance/CNN-patches.png)
-
-### Patient classification
-![Performance](performance/CNN-3classes.png)
-![Performance](performance/CNN-2classes.png)
-
-</details>
-
-&nbsp;
